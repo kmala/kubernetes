@@ -2,10 +2,11 @@ package exclusionrules
 
 import (
 	"encoding/json"
+	"os"
+
 	v1 "k8s.io/api/admissionregistration/v1"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/klog/v2"
-	"os"
 )
 
 // Enables you to pass a config file to kube-api-server
@@ -106,7 +107,8 @@ func filterValidRules(inputExclusionRules []ExclusionRule) []ExclusionRule {
 }
 
 func isDisallowedNameWildcard(rule ExclusionRule) bool {
-	return !(rule.APIGroup == "coordination.k8s.io" && rule.APIVersion == "v1" && rule.Kind == "Lease" && rule.Namespace == "kube-node-lease")
+	return !((rule.APIGroup == "coordination.k8s.io" && rule.APIVersion == "v1" && rule.Kind == "Lease" && rule.Namespace == "kube-node-lease") ||
+		(rule.APIGroup == "apiregistration.k8s.io" && rule.APIVersion == "v1" && rule.Kind == "APIService"))
 }
 
 func contains(s []string, str string) bool {
