@@ -368,8 +368,15 @@ func TestFilterValidRules(t *testing.T) {
 					Namespace:  "kube-node-lease",
 					Scope:      &namespace,
 				},
+				{
+					APIGroup:   "apiregistration.k8s.io",
+					APIVersion: "v1",
+					Kind:       "APIService",
+					Name:       []string{"*"},
+					Scope:      &cluster,
+				},
 			},
-			expectedOutputRules: 2,
+			expectedOutputRules: 3,
 		},
 		{
 			name: "Cluster scoped does not allow namespace",
