@@ -115,11 +115,11 @@ func TestEnvelopeCaching(t *testing.T) {
 			dataCtx := value.DefaultContext(testContextText)
 			originalText := []byte(testText)
 
-			transformedData, err := envelopeTransformer.TransformToStorage(ctx, originalText, dataCtx)
+			transformedData, err := envelopeTransformer.TransformToStorage(ctx, "test", originalText, dataCtx)
 			if err != nil {
 				t.Fatalf("envelopeTransformer: error while transforming data to storage: %s", err)
 			}
-			untransformedData, _, err := envelopeTransformer.TransformFromStorage(ctx, transformedData, dataCtx)
+			untransformedData, _, err := envelopeTransformer.TransformFromStorage(ctx, "test", transformedData, dataCtx)
 			if err != nil {
 				t.Fatalf("could not decrypt Envelope transformer's encrypted data even once: %v", err)
 			}
@@ -128,7 +128,7 @@ func TestEnvelopeCaching(t *testing.T) {
 			}
 
 			envelopeService.SetDisabledStatus(tt.simulateKMSPluginFailure)
-			untransformedData, _, err = envelopeTransformer.TransformFromStorage(ctx, transformedData, dataCtx)
+			untransformedData, _, err = envelopeTransformer.TransformFromStorage(ctx, "test", transformedData, dataCtx)
 			if tt.expectedError != "" {
 				if err == nil {
 					t.Fatalf("expected error: %v, got nil", tt.expectedError)
@@ -163,7 +163,7 @@ func TestEnvelopeCacheLimit(t *testing.T) {
 	for i := 0; i < 2*testEnvelopeCacheSize; i++ {
 		numberText := []byte(strconv.Itoa(i))
 
-		res, err := envelopeTransformer.TransformToStorage(ctx, numberText, dataCtx)
+		res, err := envelopeTransformer.TransformToStorage(ctx, "test", numberText, dataCtx)
 		transformedOutputs[i] = res
 		if err != nil {
 			t.Fatalf("envelopeTransformer: error while transforming data (%v) to storage: %s", numberText, err)
@@ -174,7 +174,7 @@ func TestEnvelopeCacheLimit(t *testing.T) {
 	for i := 0; i < 2*testEnvelopeCacheSize; i++ {
 		numberText := []byte(strconv.Itoa(i))
 
-		output, _, err := envelopeTransformer.TransformFromStorage(ctx, transformedOutputs[i], dataCtx)
+		output, _, err := envelopeTransformer.TransformFromStorage(ctx, "test", transformedOutputs[i], dataCtx)
 		if err != nil {
 			t.Fatalf("envelopeTransformer: error while transforming data (%v) from storage: %s", transformedOutputs[i], err)
 		}
@@ -227,14 +227,14 @@ func benchmarkRead(b *testing.B, transformer value.Transformer, valueLength int)
 	dataCtx := value.DefaultContext(testContextText)
 	v := bytes.Repeat([]byte("0123456789abcdef"), valueLength/16)
 
-	out, err := transformer.TransformToStorage(ctx, v, dataCtx)
+	out, err := transformer.TransformToStorage(ctx, "test", v, dataCtx)
 	if err != nil {
 		b.Fatal(err)
 	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		from, stale, err := transformer.TransformFromStorage(ctx, out, dataCtx)
+		from, stale, err := transformer.TransformFromStorage(ctx, "test", out, dataCtx)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -260,7 +260,7 @@ func TestBackwardsCompatibility(t *testing.T) {
 	if err != nil {
 		t.Fatalf("envelopeTransformer: error while transforming data to storage: %s", err)
 	}
-	untransformedData, _, err := envelopeTransformerInst.TransformFromStorage(ctx, transformedData, dataCtx)
+	untransformedData, _, err := envelopeTransformerInst.TransformFromStorage(ctx, "test", transformedData, dataCtx)
 	if err != nil {
 		t.Fatalf("could not decrypt Envelope transformer's encrypted data even once: %v", err)
 	}
@@ -270,7 +270,7 @@ func TestBackwardsCompatibility(t *testing.T) {
 
 	envelopeService.SetDisabledStatus(true)
 	// Subsequent read for the same data should work fine due to caching.
-	untransformedData, _, err = envelopeTransformerInst.TransformFromStorage(ctx, transformedData, dataCtx)
+	untransformedData, _, err = envelopeTransformerInst.TransformFromStorage(ctx, "test", transformedData, dataCtx)
 	if err != nil {
 		t.Fatalf("could not decrypt Envelope transformer's encrypted data using just cache: %v", err)
 	}
@@ -305,7 +305,7 @@ func oldTransformToStorage(ctx context.Context, t *envelopeTransformer, data []b
 
 	prefixedData := make([]byte, len(prefix), len(data)+len(prefix))
 	copy(prefixedData, prefix)
-	result, err := transformer.TransformToStorage(ctx, data, dataCtx)
+	result, err := transformer.TransformToStorage(ctx, "test", data, dataCtx)
 	if err != nil {
 		return nil, err
 	}

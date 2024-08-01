@@ -77,7 +77,7 @@ type extendedNonceGCM struct {
 	cache *simpleCache
 }
 
-func (e *extendedNonceGCM) TransformFromStorage(ctx context.Context, data []byte, dataCtx value.Context) ([]byte, bool, error) {
+func (e *extendedNonceGCM) TransformFromStorage(ctx context.Context, resource string, data []byte, dataCtx value.Context) ([]byte, bool, error) {
 	if len(data) < infoSizeExtendedNonceGCM {
 		return nil, false, errors.New("the stored data was shorter than the required size")
 	}
@@ -89,10 +89,10 @@ func (e *extendedNonceGCM) TransformFromStorage(ctx context.Context, data []byte
 		return nil, false, fmt.Errorf("failed to derive read key from KDF: %w", err)
 	}
 
-	return transformer.TransformFromStorage(ctx, data, dataCtx)
+	return transformer.TransformFromStorage(ctx, resource, data, dataCtx)
 }
 
-func (e *extendedNonceGCM) TransformToStorage(ctx context.Context, data []byte, dataCtx value.Context) ([]byte, error) {
+func (e *extendedNonceGCM) TransformToStorage(ctx context.Context, resource string, data []byte, dataCtx value.Context) ([]byte, error) {
 	info := make([]byte, infoSizeExtendedNonceGCM)
 	if err := randomNonce(info); err != nil {
 		return nil, fmt.Errorf("failed to generate info for KDF: %w", err)
@@ -103,7 +103,7 @@ func (e *extendedNonceGCM) TransformToStorage(ctx context.Context, data []byte, 
 		return nil, fmt.Errorf("failed to derive write key from KDF: %w", err)
 	}
 
-	return transformer.TransformToStorage(ctx, data, dataCtx)
+	return transformer.TransformToStorage(ctx, resource, data, dataCtx)
 }
 
 func (e *extendedNonceGCM) derivedKeyTransformer(info []byte, dataCtx value.Context, write bool) (value.Transformer, error) {
@@ -164,16 +164,16 @@ type transformerWithInfo struct {
 	info []byte
 }
 
-func (t *transformerWithInfo) TransformFromStorage(ctx context.Context, data []byte, dataCtx value.Context) ([]byte, bool, error) {
+func (t *transformerWithInfo) TransformFromStorage(ctx context.Context, resource string, data []byte, dataCtx value.Context) ([]byte, bool, error) {
 	if !bytes.HasPrefix(data, t.info) {
 		return nil, false, errors.New("the stored data is missing the required info prefix")
 	}
 
-	return t.transformer.TransformFromStorage(ctx, data[len(t.info):], dataCtx)
+	return t.transformer.TransformFromStorage(ctx, resource, data[len(t.info):], dataCtx)
 }
 
-func (t *transformerWithInfo) TransformToStorage(ctx context.Context, data []byte, dataCtx value.Context) ([]byte, error) {
-	out, err := t.transformer.TransformToStorage(ctx, data, dataCtx)
+func (t *transformerWithInfo) TransformToStorage(ctx context.Context, resource string, data []byte, dataCtx value.Context) ([]byte, error) {
+	out, err := t.transformer.TransformToStorage(ctx, resource, data, dataCtx)
 	if err != nil {
 		return nil, err
 	}

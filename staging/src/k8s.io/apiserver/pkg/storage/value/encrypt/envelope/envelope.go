@@ -81,7 +81,7 @@ func NewEnvelopeTransformer(envelopeService Service, cacheSize int, baseTransfor
 }
 
 // TransformFromStorage decrypts data encrypted by this transformer using envelope encryption.
-func (t *envelopeTransformer) TransformFromStorage(ctx context.Context, data []byte, dataCtx value.Context) ([]byte, bool, error) {
+func (t *envelopeTransformer) TransformFromStorage(ctx context.Context, resource string, data []byte, dataCtx value.Context) ([]byte, bool, error) {
 	metrics.RecordArrival(metrics.FromStorageLabel, time.Now())
 
 	// Read the 16 bit length-of-DEK encoded at the start of the encrypted DEK. 16 bits can
@@ -115,11 +115,11 @@ func (t *envelopeTransformer) TransformFromStorage(ctx context.Context, data []b
 		}
 	}
 
-	return transformer.TransformFromStorage(ctx, encData, dataCtx)
+	return transformer.TransformFromStorage(ctx, resource, encData, dataCtx)
 }
 
 // TransformToStorage encrypts data to be written to disk using envelope encryption.
-func (t *envelopeTransformer) TransformToStorage(ctx context.Context, data []byte, dataCtx value.Context) ([]byte, error) {
+func (t *envelopeTransformer) TransformToStorage(ctx context.Context, resource string, data []byte, dataCtx value.Context) ([]byte, error) {
 	metrics.RecordArrival(metrics.ToStorageLabel, time.Now())
 	newKey, err := generateKey(32)
 	if err != nil {
@@ -139,7 +139,7 @@ func (t *envelopeTransformer) TransformToStorage(ctx context.Context, data []byt
 		return nil, err
 	}
 
-	result, err := transformer.TransformToStorage(ctx, data, dataCtx)
+	result, err := transformer.TransformToStorage(ctx, resource, data, dataCtx)
 	if err != nil {
 		return nil, err
 	}

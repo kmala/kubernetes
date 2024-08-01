@@ -177,7 +177,7 @@ func (s *store) Get(ctx context.Context, key string, opts storage.GetOptions, ou
 	}
 	kv := getResp.Kvs[0]
 
-	data, _, err := s.transformer.TransformFromStorage(ctx, kv.Value, authenticatedDataString(preparedKey))
+	data, _, err := s.transformer.TransformFromStorage(ctx, s.groupResourceString, kv.Value, authenticatedDataString(preparedKey))
 	if err != nil {
 		return storage.NewInternalError(err.Error())
 	}
@@ -222,7 +222,7 @@ func (s *store) Create(ctx context.Context, key string, obj, out runtime.Object,
 		return err
 	}
 
-	newData, err := s.transformer.TransformToStorage(ctx, data, authenticatedDataString(preparedKey))
+	newData, err := s.transformer.TransformToStorage(ctx, s.groupResourceString, data, authenticatedDataString(preparedKey))
 	if err != nil {
 		span.AddEvent("TransformToStorage failed", attribute.String("err", err.Error()))
 		return storage.NewInternalError(err.Error())
@@ -500,7 +500,7 @@ func (s *store) GuaranteedUpdate(
 			}
 		}
 
-		newData, err := s.transformer.TransformToStorage(ctx, data, transformContext)
+		newData, err := s.transformer.TransformToStorage(ctx, s.groupResourceString, data, transformContext)
 		if err != nil {
 			span.AddEvent("TransformToStorage failed", attribute.String("err", err.Error()))
 			return storage.NewInternalError(err.Error())
@@ -760,7 +760,7 @@ func (s *store) GetList(ctx context.Context, key string, opts storage.ListOption
 			}
 			lastKey = kv.Key
 
-			data, _, err := s.transformer.TransformFromStorage(ctx, kv.Value, authenticatedDataString(kv.Key))
+			data, _, err := s.transformer.TransformFromStorage(ctx, s.groupResourceString, kv.Value, authenticatedDataString(kv.Key))
 			if err != nil {
 				return storage.NewInternalErrorf("unable to transform key %q: %v", kv.Key, err)
 			}
@@ -909,7 +909,7 @@ func (s *store) getState(ctx context.Context, getResp *clientv3.GetResponse, key
 			return nil, err
 		}
 	} else {
-		data, stale, err := s.transformer.TransformFromStorage(ctx, getResp.Kvs[0].Value, authenticatedDataString(key))
+		data, stale, err := s.transformer.TransformFromStorage(ctx, s.groupResourceString, getResp.Kvs[0].Value, authenticatedDataString(key))
 		if err != nil {
 			return nil, storage.NewInternalError(err.Error())
 		}

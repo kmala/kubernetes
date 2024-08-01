@@ -277,7 +277,7 @@ func NewPrefixTransformer(prefix []byte, stale bool) *PrefixTransformer {
 	}
 }
 
-func (p *PrefixTransformer) TransformFromStorage(ctx context.Context, data []byte, dataCtx value.Context) ([]byte, bool, error) {
+func (p *PrefixTransformer) TransformFromStorage(ctx context.Context, resource string, data []byte, dataCtx value.Context) ([]byte, bool, error) {
 	atomic.AddUint64(&p.reads, 1)
 	if dataCtx == nil {
 		panic("no context provided")
@@ -287,7 +287,7 @@ func (p *PrefixTransformer) TransformFromStorage(ctx context.Context, data []byt
 	}
 	return bytes.TrimPrefix(data, p.prefix), p.stale, p.err
 }
-func (p *PrefixTransformer) TransformToStorage(ctx context.Context, data []byte, dataCtx value.Context) ([]byte, error) {
+func (p *PrefixTransformer) TransformToStorage(ctx context.Context, resource string, data []byte, dataCtx value.Context) ([]byte, error) {
 	if dataCtx == nil {
 		panic("no context provided")
 	}
@@ -314,15 +314,15 @@ type reproducingTransformer struct {
 	nextObject func(uint32) (string, *example.Pod)
 }
 
-func (rt *reproducingTransformer) TransformFromStorage(ctx context.Context, data []byte, dataCtx value.Context) ([]byte, bool, error) {
+func (rt *reproducingTransformer) TransformFromStorage(ctx context.Context, resource string, data []byte, dataCtx value.Context) ([]byte, bool, error) {
 	if err := rt.createObject(ctx); err != nil {
 		return nil, false, err
 	}
-	return rt.wrapped.TransformFromStorage(ctx, data, dataCtx)
+	return rt.wrapped.TransformFromStorage(ctx, resource, data, dataCtx)
 }
 
-func (rt *reproducingTransformer) TransformToStorage(ctx context.Context, data []byte, dataCtx value.Context) ([]byte, error) {
-	return rt.wrapped.TransformToStorage(ctx, data, dataCtx)
+func (rt *reproducingTransformer) TransformToStorage(ctx context.Context, resource string, data []byte, dataCtx value.Context) ([]byte, error) {
+	return rt.wrapped.TransformToStorage(ctx, resource, data, dataCtx)
 }
 
 func (rt *reproducingTransformer) createObject(ctx context.Context) error {
@@ -336,11 +336,11 @@ func (rt *reproducingTransformer) createObject(ctx context.Context) error {
 type failingTransformer struct {
 }
 
-func (ft *failingTransformer) TransformFromStorage(ctx context.Context, data []byte, dataCtx value.Context) ([]byte, bool, error) {
+func (ft *failingTransformer) TransformFromStorage(ctx context.Context, resource string, data []byte, dataCtx value.Context) ([]byte, bool, error) {
 	return nil, false, fmt.Errorf("failed transformation")
 }
 
-func (ft *failingTransformer) TransformToStorage(ctx context.Context, data []byte, dataCtx value.Context) ([]byte, error) {
+func (ft *failingTransformer) TransformToStorage(ctx context.Context, resource string, data []byte, dataCtx value.Context) ([]byte, error) {
 	return data, nil
 }
 

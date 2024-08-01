@@ -865,11 +865,11 @@ func envelopePrefixTransformer(config *apiserver.KMSConfiguration, envelopeServi
 
 type unionTransformers []storagevalue.Transformer
 
-func (u unionTransformers) TransformFromStorage(ctx context.Context, data []byte, dataCtx storagevalue.Context) (out []byte, stale bool, err error) {
+func (u unionTransformers) TransformFromStorage(ctx context.Context, resource string, data []byte, dataCtx storagevalue.Context) (out []byte, stale bool, err error) {
 	var errs []error
 	for i := range u {
 		transformer := u[i]
-		result, stale, err := transformer.TransformFromStorage(ctx, data, dataCtx)
+		result, stale, err := transformer.TransformFromStorage(ctx, resource, data, dataCtx)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -884,8 +884,8 @@ func (u unionTransformers) TransformFromStorage(ctx context.Context, data []byte
 	return nil, false, fmt.Errorf("unionTransformers: unable to transform from storage")
 }
 
-func (u unionTransformers) TransformToStorage(ctx context.Context, data []byte, dataCtx storagevalue.Context) (out []byte, err error) {
-	return u[0].TransformToStorage(ctx, data, dataCtx)
+func (u unionTransformers) TransformToStorage(ctx context.Context, resource string, data []byte, dataCtx storagevalue.Context) (out []byte, err error) {
+	return u[0].TransformToStorage(ctx, resource, data, dataCtx)
 }
 
 // computeEncryptionConfigHash returns the expected hash for an encryption config file that has been loaded as bytes.
@@ -985,12 +985,12 @@ type resourceTransformer struct {
 	transformTracker *atomic.Value
 }
 
-func (r *resourceTransformer) TransformFromStorage(ctx context.Context, data []byte, dataCtx storagevalue.Context) ([]byte, bool, error) {
-	return r.transformer().TransformFromStorage(ctx, data, dataCtx)
+func (r *resourceTransformer) TransformFromStorage(ctx context.Context, resource string, data []byte, dataCtx storagevalue.Context) ([]byte, bool, error) {
+	return r.transformer().TransformFromStorage(ctx, resource, data, dataCtx)
 }
 
-func (r *resourceTransformer) TransformToStorage(ctx context.Context, data []byte, dataCtx storagevalue.Context) ([]byte, error) {
-	return r.transformer().TransformToStorage(ctx, data, dataCtx)
+func (r *resourceTransformer) TransformToStorage(ctx context.Context, resource string, data []byte, dataCtx storagevalue.Context) ([]byte, error) {
+	return r.transformer().TransformToStorage(ctx, resource, data, dataCtx)
 }
 
 func (r *resourceTransformer) transformer() storagevalue.Transformer {

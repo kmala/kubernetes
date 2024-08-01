@@ -109,7 +109,7 @@ func (r envelope) plainTextPayload(secretETCDPath string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create transformer from block: %v", err)
 	}
-	plainSecret, _, err := aesgcmTransformer.TransformFromStorage(ctx, r.cipherTextPayload(), dataCtx)
+	plainSecret, _, err := aesgcmTransformer.TransformFromStorage(ctx, "test", r.cipherTextPayload(), dataCtx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to transform from storage via AESGCM, err: %w", err)
 	}
@@ -221,7 +221,7 @@ resources:
 		t.Fatalf("invalid key, err: %v", err)
 	}
 
-	oldEncryptedSecretBytes, err := aestransformer.NewCBCTransformer(block).TransformToStorage(ctx, oldSecretBytes, value.DefaultContext(secretETCDPath))
+	oldEncryptedSecretBytes, err := aestransformer.NewCBCTransformer(block).TransformToStorage(ctx, "test", oldSecretBytes, value.DefaultContext(secretETCDPath))
 	if err != nil {
 		t.Fatalf("failed to encrypt old secret, err: %v", err)
 	}

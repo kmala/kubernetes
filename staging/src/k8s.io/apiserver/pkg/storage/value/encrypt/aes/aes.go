@@ -183,7 +183,7 @@ type gcm struct {
 	nonceFunc func([]byte) error
 }
 
-func (t *gcm) TransformFromStorage(ctx context.Context, data []byte, dataCtx value.Context) ([]byte, bool, error) {
+func (t *gcm) TransformFromStorage(ctx context.Context, resource string, data []byte, dataCtx value.Context) ([]byte, bool, error) {
 	nonceSize := t.aead.NonceSize()
 	if len(data) < nonceSize {
 		return nil, false, errors.New("the stored data was shorter than the required size")
@@ -192,7 +192,7 @@ func (t *gcm) TransformFromStorage(ctx context.Context, data []byte, dataCtx val
 	return result, false, err
 }
 
-func (t *gcm) TransformToStorage(ctx context.Context, data []byte, dataCtx value.Context) ([]byte, error) {
+func (t *gcm) TransformToStorage(ctx context.Context, resource string, data []byte, dataCtx value.Context) ([]byte, error) {
 	nonceSize := t.aead.NonceSize()
 	result := make([]byte, nonceSize+t.aead.Overhead()+len(data))
 
@@ -221,7 +221,7 @@ var (
 	errInvalidPKCS7Padding = errors.New("invalid padding on input")
 )
 
-func (t *cbc) TransformFromStorage(ctx context.Context, data []byte, dataCtx value.Context) ([]byte, bool, error) {
+func (t *cbc) TransformFromStorage(ctx context.Context, resource string, data []byte, dataCtx value.Context) ([]byte, bool, error) {
 	blockSize := aes.BlockSize
 	if len(data) < blockSize {
 		return nil, false, errors.New("the stored data was shorter than the required size")
@@ -254,7 +254,7 @@ func (t *cbc) TransformFromStorage(ctx context.Context, data []byte, dataCtx val
 	return result[:size], false, nil
 }
 
-func (t *cbc) TransformToStorage(ctx context.Context, data []byte, dataCtx value.Context) ([]byte, error) {
+func (t *cbc) TransformToStorage(ctx context.Context, resource string, data []byte, dataCtx value.Context) ([]byte, error) {
 	blockSize := aes.BlockSize
 	paddingSize := blockSize - (len(data) % blockSize)
 	result := make([]byte, blockSize+len(data)+paddingSize)

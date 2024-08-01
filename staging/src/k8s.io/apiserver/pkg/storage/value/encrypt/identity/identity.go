@@ -41,7 +41,7 @@ func NewEncryptCheckTransformer() value.Transformer {
 }
 
 // TransformFromStorage returns the input bytes if the data is not encrypted
-func (identityTransformer) TransformFromStorage(ctx context.Context, data []byte, dataCtx value.Context) ([]byte, bool, error) {
+func (identityTransformer) TransformFromStorage(ctx context.Context, resource string, data []byte, dataCtx value.Context) ([]byte, bool, error) {
 	// identityTransformer has to return an error if the data is encoded using another transformer.
 	// JSON data starts with '{'. Protobuf data has a prefix 'k8s[\x00-\xFF]'.
 	// Prefix 'k8s:enc:' is reserved for encrypted data on disk.
@@ -52,6 +52,6 @@ func (identityTransformer) TransformFromStorage(ctx context.Context, data []byte
 }
 
 // TransformToStorage implements the Transformer interface for identityTransformer
-func (identityTransformer) TransformToStorage(ctx context.Context, data []byte, dataCtx value.Context) ([]byte, error) {
+func (identityTransformer) TransformToStorage(ctx context.Context, resource string, data []byte, dataCtx value.Context) ([]byte, error) {
 	return data, nil
 }

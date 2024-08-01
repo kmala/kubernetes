@@ -39,12 +39,12 @@ type testTransformer struct {
 	receivedFrom, receivedTo []byte
 }
 
-func (t *testTransformer) TransformFromStorage(ctx context.Context, data []byte, dataCtx Context) (out []byte, stale bool, err error) {
+func (t *testTransformer) TransformFromStorage(ctx context.Context, resource string, data []byte, dataCtx Context) (out []byte, stale bool, err error) {
 	t.receivedFrom = data
 	return t.from, t.stale, t.err
 }
 
-func (t *testTransformer) TransformToStorage(ctx context.Context, data []byte, dataCtx Context) (out []byte, err error) {
+func (t *testTransformer) TransformToStorage(ctx context.Context, resource string, data []byte, dataCtx Context) (out []byte, err error) {
 	t.receivedTo = data
 	return t.to, t.err
 }
@@ -74,7 +74,7 @@ func TestPrefixFrom(t *testing.T) {
 		{[]byte("stale:value"), []byte("value3"), true, nil, 3},
 	}
 	for i, test := range testCases {
-		got, stale, err := p.TransformFromStorage(context.Background(), test.input, nil)
+		got, stale, err := p.TransformFromStorage(context.Background(), "test", test.input, nil)
 		if err != test.err || stale != test.stale || !bytes.Equal(got, test.expect) {
 			t.Errorf("%d: unexpected out: %q %t %#v", i, string(got), stale, err)
 			continue
@@ -99,7 +99,7 @@ func TestPrefixTo(t *testing.T) {
 	}
 	for i, test := range testCases {
 		p := NewPrefixTransformers(testErr, test.transformers...)
-		got, err := p.TransformToStorage(context.Background(), []byte("value"), nil)
+		got, err := p.TransformToStorage(context.Background(), "test", []byte("value"), nil)
 		if err != test.err || !bytes.Equal(got, test.expect) {
 			t.Errorf("%d: unexpected out: %q %#v", i, string(got), err)
 			continue
@@ -119,12 +119,12 @@ func TestPrefixFromMetrics(t *testing.T) {
 	otherTransformerErr := PrefixTransformer{Prefix: []byte("other:"), Transformer: &testTransformer{err: transformerErr}}
 
 	testCases := []struct {
-		desc    string
-		input   []byte
-		prefix  Transformer
-		metrics []string
-		want    string
-		err     error
+		desc      string
+		input     []byte
+		prefix    Transformer
+		metrics   []string
+		want      string
+		expectErr bool
 	}{
 		{
 			desc:   "identity prefix",
@@ -136,9 +136,9 @@ func TestPrefixFromMetrics(t *testing.T) {
 			want: `
 	# HELP apiserver_storage_transformation_operations_total [ALPHA] Total number of transformations. Successful transformation will have a status 'OK' and a varied status string when the transformation fails. This status and transformation_type fields may be used for alerting on encryption/decryption failure using transformation_type from_storage for decryption and to_storage for encryption
   # TYPE apiserver_storage_transformation_operations_total counter
-  apiserver_storage_transformation_operations_total{status="OK",transformation_type="from_storage",transformer_prefix="identity"} 1
+  apiserver_storage_transformation_operations_total{resource="test",status="OK",transformation_type="from_storage",transformer_prefix="identity"} 1
   `,
-			err: nil,
+			expectErr: false,
 		},
 		{
 			desc:   "other prefix (ok)",
@@ -150,9 +150,9 @@ func TestPrefixFromMetrics(t *testing.T) {
 			want: `
 	# HELP apiserver_storage_transformation_operations_total [ALPHA] Total number of transformations. Successful transformation will have a status 'OK' and a varied status string when the transformation fails. This status and transformation_type fields may be used for alerting on encryption/decryption failure using transformation_type from_storage for decryption and to_storage for encryption
   # TYPE apiserver_storage_transformation_operations_total counter
-  apiserver_storage_transformation_operations_total{status="OK",transformation_type="from_storage",transformer_prefix="other:"} 1
+  apiserver_storage_transformation_operations_total{resource="test",status="OK",transformation_type="from_storage",transformer_prefix="other:"} 1
   `,
-			err: nil,
+			expectErr: false,
 		},
 		{
 			desc:   "other prefix (error)",
@@ -164,9 +164,9 @@ func TestPrefixFromMetrics(t *testing.T) {
 			want: `
 	# HELP apiserver_storage_transformation_operations_total [ALPHA] Total number of transformations. Successful transformation will have a status 'OK' and a varied status string when the transformation fails. This status and transformation_type fields may be used for alerting on encryption/decryption failure using transformation_type from_storage for decryption and to_storage for encryption
   # TYPE apiserver_storage_transformation_operations_total counter
-  apiserver_storage_transformation_operations_total{status="unknown-non-grpc",transformation_type="from_storage",transformer_prefix="other:"} 1
+  apiserver_storage_transformation_operations_total{resource="test",status="unknown-non-grpc",transformation_type="from_storage",transformer_prefix="other:"} 1
   `,
-			err: nil,
+			expectErr: true,
 		},
 		{
 			desc:   "unknown prefix",
@@ -178,9 +178,9 @@ func TestPrefixFromMetrics(t *testing.T) {
 			want: `
 	# HELP apiserver_storage_transformation_operations_total [ALPHA] Total number of transformations. Successful transformation will have a status 'OK' and a varied status string when the transformation fails. This status and transformation_type fields may be used for alerting on encryption/decryption failure using transformation_type from_storage for decryption and to_storage for encryption
   # TYPE apiserver_storage_transformation_operations_total counter
-  apiserver_storage_transformation_operations_total{status="unknown-non-grpc",transformation_type="from_storage",transformer_prefix="unknown"} 1
+  apiserver_storage_transformation_operations_total{resource="test",status="unknown-non-grpc",transformation_type="from_storage",transformer_prefix="unknown"} 1
   `,
-			err: nil,
+			expectErr: true,
 		},
 	}
 
@@ -189,7 +189,10 @@ func TestPrefixFromMetrics(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			tc.prefix.TransformFromStorage(context.Background(), tc.input, nil)
+			_, _, err := tc.prefix.TransformFromStorage(context.Background(), "test", tc.input, nil)
+			if err != nil && !tc.expectErr {
+				t.Fatal(err)
+			}
 			defer transformerOperationsTotal.Reset()
 			if err := testutil.GatherAndCompare(legacyregistry.DefaultGatherer, strings.NewReader(tc.want), tc.metrics...); err != nil {
 				t.Fatal(err)
@@ -205,12 +208,12 @@ func TestPrefixToMetrics(t *testing.T) {
 	otherTransformerErr := PrefixTransformer{Prefix: []byte("other:"), Transformer: &testTransformer{err: transformerErr}}
 
 	testCases := []struct {
-		desc    string
-		input   []byte
-		prefix  Transformer
-		metrics []string
-		want    string
-		err     error
+		desc      string
+		input     []byte
+		prefix    Transformer
+		metrics   []string
+		want      string
+		expectErr bool
 	}{
 		{
 			desc:   "ok",
@@ -222,9 +225,9 @@ func TestPrefixToMetrics(t *testing.T) {
 			want: `
 	# HELP apiserver_storage_transformation_operations_total [ALPHA] Total number of transformations. Successful transformation will have a status 'OK' and a varied status string when the transformation fails. This status and transformation_type fields may be used for alerting on encryption/decryption failure using transformation_type from_storage for decryption and to_storage for encryption
   # TYPE apiserver_storage_transformation_operations_total counter
-  apiserver_storage_transformation_operations_total{status="OK",transformation_type="to_storage",transformer_prefix="other:"} 1
+  apiserver_storage_transformation_operations_total{resource="test",status="OK",transformation_type="to_storage",transformer_prefix="other:"} 1
   `,
-			err: nil,
+			expectErr: false,
 		},
 		{
 			desc:   "error",
@@ -236,9 +239,9 @@ func TestPrefixToMetrics(t *testing.T) {
 			want: `
 	# HELP apiserver_storage_transformation_operations_total [ALPHA] Total number of transformations. Successful transformation will have a status 'OK' and a varied status string when the transformation fails. This status and transformation_type fields may be used for alerting on encryption/decryption failure using transformation_type from_storage for decryption and to_storage for encryption
   # TYPE apiserver_storage_transformation_operations_total counter
-  apiserver_storage_transformation_operations_total{status="unknown-non-grpc",transformation_type="to_storage",transformer_prefix="other:"} 1
+  apiserver_storage_transformation_operations_total{resource="test",status="unknown-non-grpc",transformation_type="to_storage",transformer_prefix="other:"} 1
   `,
-			err: nil,
+			expectErr: true,
 		},
 	}
 
@@ -247,7 +250,10 @@ func TestPrefixToMetrics(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			tc.prefix.TransformToStorage(context.Background(), tc.input, nil)
+			_, err := tc.prefix.TransformToStorage(context.Background(), "test", tc.input, nil)
+			if err != nil && !tc.expectErr {
+				t.Fatal(err)
+			}
 			defer transformerOperationsTotal.Reset()
 			if err := testutil.GatherAndCompare(legacyregistry.DefaultGatherer, strings.NewReader(tc.want), tc.metrics...); err != nil {
 				t.Fatal(err)

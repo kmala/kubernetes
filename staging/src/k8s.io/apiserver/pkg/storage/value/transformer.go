@@ -46,12 +46,12 @@ type Read interface {
 	// TransformFromStorage may transform the provided data from its underlying storage representation or return an error.
 	// Stale is true if the object on disk is stale and a write to etcd should be issued, even if the contents of the object
 	// have not changed.
-	TransformFromStorage(ctx context.Context, data []byte, dataCtx Context) (out []byte, stale bool, err error)
+	TransformFromStorage(ctx context.Context, resource string, data []byte, dataCtx Context) (out []byte, stale bool, err error)
 }
 
 type Write interface {
 	// TransformToStorage may transform the provided data into the appropriate form in storage or return an error.
-	TransformToStorage(ctx context.Context, data []byte, dataCtx Context) (out []byte, err error)
+	TransformToStorage(ctx context.Context, resource string, data []byte, dataCtx Context) (out []byte, err error)
 }
 
 // Transformer allows a value to be transformed before being read from or written to the underlying store. The methods
@@ -102,12 +102,12 @@ func NewPrefixTransformers(err error, transformers ...PrefixTransformer) Transfo
 // TransformFromStorage finds the first transformer with a prefix matching the provided data and returns
 // the result of transforming the value. It will always mark any transformation as stale that is not using
 // the first transformer.
-func (t *prefixTransformers) TransformFromStorage(ctx context.Context, data []byte, dataCtx Context) ([]byte, bool, error) {
+func (t *prefixTransformers) TransformFromStorage(ctx context.Context, resource string, data []byte, dataCtx Context) ([]byte, bool, error) {
 	start := time.Now()
 	var errs []error
 	for i, transformer := range t.transformers {
 		if bytes.HasPrefix(data, transformer.Prefix) {
-			result, stale, err := transformer.Transformer.TransformFromStorage(ctx, data[len(transformer.Prefix):], dataCtx)
+			result, stale, err := transformer.Transformer.TransformFromStorage(ctx, resource, data[len(transformer.Prefix):], dataCtx)
 			// To migrate away from encryption, user can specify an identity transformer higher up
 			// (in the config file) than the encryption transformer. In that scenario, the identity transformer needs to
 			// identify (during reads from disk) whether the data being read is encrypted or not. If the data is encrypted,
@@ -116,9 +116,9 @@ func (t *prefixTransformers) TransformFromStorage(ctx context.Context, data []by
 				continue
 			}
 			if len(transformer.Prefix) == 0 {
-				RecordTransformation("from_storage", "identity", time.Since(start), err)
+				RecordTransformation(resource, "from_storage", "identity", time.Since(start), err)
 			} else {
-				RecordTransformation("from_storage", string(transformer.Prefix), time.Since(start), err)
+				RecordTransformation(resource, "from_storage", string(transformer.Prefix), time.Since(start), err)
 			}
 
 			// It is valid to have overlapping prefixes when the same encryption provider
@@ -163,16 +163,16 @@ func (t *prefixTransformers) TransformFromStorage(ctx context.Context, data []by
 		logTransformErr(ctx, err, "failed to decrypt data")
 		return nil, false, err
 	}
-	RecordTransformation("from_storage", "unknown", time.Since(start), t.err)
+	RecordTransformation(resource, "from_storage", "unknown", time.Since(start), t.err)
 	return nil, false, t.err
 }
 
 // TransformToStorage uses the first transformer and adds its prefix to the data.
-func (t *prefixTransformers) TransformToStorage(ctx context.Context, data []byte, dataCtx Context) ([]byte, error) {
+func (t *prefixTransformers) TransformToStorage(ctx context.Context, resource string, data []byte, dataCtx Context) ([]byte, error) {
 	start := time.Now()
 	transformer := t.transformers[0]
-	result, err := transformer.Transformer.TransformToStorage(ctx, data, dataCtx)
-	RecordTransformation("to_storage", string(transformer.Prefix), time.Since(start), err)
+	result, err := transformer.Transformer.TransformToStorage(ctx, resource, data, dataCtx)
+	RecordTransformation(resource, "to_storage", string(transformer.Prefix), time.Since(start), err)
 	if err != nil {
 		logTransformErr(ctx, err, "failed to encrypt data")
 		return nil, err
