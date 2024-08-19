@@ -154,7 +154,7 @@ func (r envelopekmsv2) plainTextPayload(secretETCDPath string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get cipher text payload: %v", err)
 	}
-	plainSecret, _, err := transformer.TransformFromStorage(ctx, "test", data, dataCtx)
+	plainSecret, _, err := transformer.TransformFromStorage(ctx, data, dataCtx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to transform from storage via AESGCM, err: %w", err)
 	}

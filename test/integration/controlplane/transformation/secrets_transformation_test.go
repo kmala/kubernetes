@@ -144,7 +144,7 @@ func unSealWithGCMTransformer(ctx context.Context, cipherText []byte, dataCtx va
 		return nil, fmt.Errorf("failed to create transformer from block: %v", err)
 	}
 
-	clearText, _, err := gcmTransformer.TransformFromStorage(ctx, "secrets", cipherText, dataCtx)
+	clearText, _, err := gcmTransformer.TransformFromStorage(ctx, cipherText, dataCtx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decypt secret: %v", err)
 	}
@@ -162,7 +162,7 @@ func unSealWithCBCTransformer(ctx context.Context, cipherText []byte, dataCtx va
 
 	cbcTransformer := aestransformer.NewCBCTransformer(block)
 
-	clearText, _, err := cbcTransformer.TransformFromStorage(ctx, "secrets", cipherText, dataCtx)
+	clearText, _, err := cbcTransformer.TransformFromStorage(ctx, cipherText, dataCtx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decypt secret: %v", err)
 	}

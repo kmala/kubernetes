@@ -136,7 +136,7 @@ func newEnvelopeTransformerWithClock(envelopeService kmsservice.Service, provide
 }
 
 // TransformFromStorage decrypts data encrypted by this transformer using envelope encryption.
-func (t *envelopeTransformer) TransformFromStorage(ctx context.Context, resource string, data []byte, dataCtx value.Context) ([]byte, bool, error) {
+func (t *envelopeTransformer) TransformFromStorage(ctx context.Context, data []byte, dataCtx value.Context) ([]byte, bool, error) {
 	ctx, span := tracing.Start(ctx, "TransformFromStorage with envelopeTransformer",
 		attribute.String("transformer.provider.name", t.providerName),
 		// The service.instance_id of the apiserver is already available in the trace
@@ -208,7 +208,7 @@ func (t *envelopeTransformer) TransformFromStorage(ctx context.Context, resource
 	metrics.RecordKeyID(metrics.FromStorageLabel, t.providerName, encryptedObject.KeyID, t.apiServerID)
 
 	span.AddEvent("About to decrypt data using DEK")
-	out, stale, err := transformer.TransformFromStorage(ctx, resource, encryptedObject.EncryptedData, dataCtx)
+	out, stale, err := transformer.TransformFromStorage(ctx, encryptedObject.EncryptedData, dataCtx)
 	if err != nil {
 		span.AddEvent("Data decryption failed")
 		span.RecordError(err)
@@ -225,7 +225,7 @@ func (t *envelopeTransformer) TransformFromStorage(ctx context.Context, resource
 }
 
 // TransformToStorage encrypts data to be written to disk using envelope encryption.
-func (t *envelopeTransformer) TransformToStorage(ctx context.Context, resource string, data []byte, dataCtx value.Context) ([]byte, error) {
+func (t *envelopeTransformer) TransformToStorage(ctx context.Context, data []byte, dataCtx value.Context) ([]byte, error) {
 	ctx, span := tracing.Start(ctx, "TransformToStorage with envelopeTransformer",
 		attribute.String("transformer.provider.name", t.providerName),
 		// The service.instance_id of the apiserver is already available in the trace
@@ -258,7 +258,7 @@ func (t *envelopeTransformer) TransformToStorage(ctx context.Context, resource s
 		"verb", requestInfo.Verb, "namespace", requestInfo.Namespace, "name", requestInfo.Name)
 
 	span.AddEvent("About to encrypt data using DEK")
-	result, err := state.Transformer.TransformToStorage(ctx, resource, data, dataCtx)
+	result, err := state.Transformer.TransformToStorage(ctx, data, dataCtx)
 	if err != nil {
 		span.AddEvent("Data encryption failed")
 		span.RecordError(err)

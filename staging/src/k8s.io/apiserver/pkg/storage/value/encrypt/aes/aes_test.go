@@ -133,7 +133,7 @@ func runEncrypt(t *testing.T, transformer value.Transformer) {
 	ctx := context.Background()
 	dataCtx := value.DefaultContext("authenticated_data")
 
-	_, err := transformer.TransformToStorage(ctx, "test", []byte("firstvalue"), dataCtx)
+	_, err := transformer.TransformToStorage(ctx, []byte("firstvalue"), dataCtx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,7 +159,7 @@ func TestGCMUnsafeCompatibility(t *testing.T) {
 
 	plaintext := []byte("firstvalue")
 
-	ciphertext, err := transformerEncrypt.TransformToStorage(ctx, "test", plaintext, dataCtx)
+	ciphertext, err := transformerEncrypt.TransformToStorage(ctx, plaintext, dataCtx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -168,7 +168,7 @@ func TestGCMUnsafeCompatibility(t *testing.T) {
 		t.Errorf("plaintext %q matches ciphertext %q", string(plaintext), string(ciphertext))
 	}
 
-	plaintextAgain, _, err := transformerDecrypt.TransformFromStorage(ctx, "test", ciphertext, dataCtx)
+	plaintextAgain, _, err := transformerDecrypt.TransformFromStorage(ctx, ciphertext, dataCtx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -194,7 +194,7 @@ func TestGCMLegacyDataCompatibility(t *testing.T) {
 
 	plaintext := []byte("pandas are the best")
 
-	plaintextAgain, _, err := transformerDecrypt.TransformFromStorage(ctx, "test", []byte(legacyCiphertext), dataCtx)
+	plaintextAgain, _, err := transformerDecrypt.TransformFromStorage(ctx, []byte(legacyCiphertext), dataCtx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -218,7 +218,7 @@ func TestExtendedNonceGCMLegacyDataCompatibility(t *testing.T) {
 
 	plaintext := []byte("pandas are the best")
 
-	plaintextAgain, _, err := transformerDecrypt.TransformFromStorage(ctx, "test", []byte(legacyCiphertext), dataCtx)
+	plaintextAgain, _, err := transformerDecrypt.TransformFromStorage(ctx, []byte(legacyCiphertext), dataCtx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -253,7 +253,7 @@ func TestGCMUnsafeNonceGen(t *testing.T) {
 
 			plaintext := bytes.Repeat([]byte{byte(i % 8)}, count)
 
-			out, err := transformer.TransformToStorage(ctx, "test", plaintext, dataCtx)
+			out, err := transformer.TransformToStorage(ctx, plaintext, dataCtx)
 			if err != nil {
 				t.Error(err)
 				return
@@ -269,7 +269,7 @@ func TestGCMUnsafeNonceGen(t *testing.T) {
 			counter := nonce[4:]
 			counters[binary.LittleEndian.Uint64(counter)-1]++ // subtract one because the counter starts at 1, not 0
 
-			plaintextAgain, _, err := transformer.TransformFromStorage(ctx, "test", out, dataCtx)
+			plaintextAgain, _, err := transformer.TransformFromStorage(ctx, out, dataCtx)
 			if err != nil {
 				t.Error(err)
 				return
@@ -335,7 +335,7 @@ func testGCMNonce(t *testing.T, f transformerFunc, infoLen int, check func(int, 
 	for i := 0; i < count; i++ {
 		i := i
 
-		out, err := transformer.TransformToStorage(ctx, "test", bytes.Repeat([]byte{byte(i % 8)}, count), dataCtx)
+		out, err := transformer.TransformToStorage(ctx, bytes.Repeat([]byte{byte(i % 8)}, count), dataCtx)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -393,14 +393,14 @@ func testGCMKeyRotation(t *testing.T, f transformerFunc) {
 		value.PrefixTransformer{Prefix: []byte("first:"), Transformer: f(t, block1, key1)},
 		value.PrefixTransformer{Prefix: []byte("second:"), Transformer: f(t, block2, key2)},
 	)
-	out, err := p.TransformToStorage(ctx, "test", []byte("firstvalue"), dataCtx)
+	out, err := p.TransformToStorage(ctx, []byte("firstvalue"), dataCtx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !bytes.HasPrefix(out, []byte("first:")) {
 		t.Fatalf("unexpected prefix: %q", out)
 	}
-	from, stale, err := p.TransformFromStorage(ctx, "test", out, dataCtx)
+	from, stale, err := p.TransformFromStorage(ctx, out, dataCtx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -409,7 +409,7 @@ func testGCMKeyRotation(t *testing.T, f transformerFunc) {
 	}
 
 	// verify changing the context fails storage
-	_, _, err = p.TransformFromStorage(ctx, "test", out, value.DefaultContext("incorrect_context"))
+	_, _, err = p.TransformFromStorage(ctx, out, value.DefaultContext("incorrect_context"))
 	if err == nil {
 		t.Fatalf("expected unauthenticated data")
 	}
@@ -419,7 +419,7 @@ func testGCMKeyRotation(t *testing.T, f transformerFunc) {
 		value.PrefixTransformer{Prefix: []byte("second:"), Transformer: f(t, block2, key2)},
 		value.PrefixTransformer{Prefix: []byte("first:"), Transformer: f(t, block1, key1)},
 	)
-	from, stale, err = p.TransformFromStorage(ctx, "test", out, dataCtx)
+	from, stale, err = p.TransformFromStorage(ctx, out, dataCtx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -446,14 +446,14 @@ func TestCBCKeyRotation(t *testing.T) {
 		value.PrefixTransformer{Prefix: []byte("first:"), Transformer: NewCBCTransformer(block1)},
 		value.PrefixTransformer{Prefix: []byte("second:"), Transformer: NewCBCTransformer(block2)},
 	)
-	out, err := p.TransformToStorage(ctx, "test", []byte("firstvalue"), dataCtx)
+	out, err := p.TransformToStorage(ctx, []byte("firstvalue"), dataCtx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !bytes.HasPrefix(out, []byte("first:")) {
 		t.Fatalf("unexpected prefix: %q", out)
 	}
-	from, stale, err := p.TransformFromStorage(ctx, "test", out, dataCtx)
+	from, stale, err := p.TransformFromStorage(ctx, out, dataCtx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -462,7 +462,7 @@ func TestCBCKeyRotation(t *testing.T) {
 	}
 
 	// verify changing the context fails storage
-	_, _, err = p.TransformFromStorage(ctx, "test", out, value.DefaultContext("incorrect_context"))
+	_, _, err = p.TransformFromStorage(ctx, out, value.DefaultContext("incorrect_context"))
 	if err != nil {
 		t.Fatalf("CBC mode does not support authentication: %v", err)
 	}
@@ -472,7 +472,7 @@ func TestCBCKeyRotation(t *testing.T) {
 		value.PrefixTransformer{Prefix: []byte("second:"), Transformer: NewCBCTransformer(block2)},
 		value.PrefixTransformer{Prefix: []byte("first:"), Transformer: NewCBCTransformer(block1)},
 	)
-	from, stale, err = p.TransformFromStorage(ctx, "test", out, dataCtx)
+	from, stale, err = p.TransformFromStorage(ctx, out, dataCtx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -562,7 +562,7 @@ func benchmarkGCMRead(b *testing.B, f transformerFunc, keyLength int, valueLengt
 	dataCtx := value.DefaultContext("authenticated_data")
 	v := bytes.Repeat([]byte("0123456789abcdef"), valueLength/16)
 
-	out, err := p.TransformToStorage(ctx, "test", v, dataCtx)
+	out, err := p.TransformToStorage(ctx, v, dataCtx)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -576,7 +576,7 @@ func benchmarkGCMRead(b *testing.B, f transformerFunc, keyLength int, valueLengt
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		from, stale, err := p.TransformFromStorage(ctx, "test", out, dataCtx)
+		from, stale, err := p.TransformFromStorage(ctx, out, dataCtx)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -610,7 +610,7 @@ func benchmarkGCMWrite(b *testing.B, f transformerFunc, keyLength int, valueLeng
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := p.TransformToStorage(ctx, "test", v, dataCtx)
+		_, err := p.TransformToStorage(ctx, v, dataCtx)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -670,7 +670,7 @@ func benchmarkCBCRead(b *testing.B, keyLength int, valueLength int, expectStale 
 	dataCtx := value.DefaultContext("authenticated_data")
 	v := bytes.Repeat([]byte("0123456789abcdef"), valueLength/16)
 
-	out, err := p.TransformToStorage(ctx, "test", v, dataCtx)
+	out, err := p.TransformToStorage(ctx, v, dataCtx)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -684,7 +684,7 @@ func benchmarkCBCRead(b *testing.B, keyLength int, valueLength int, expectStale 
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		from, stale, err := p.TransformFromStorage(ctx, "test", out, dataCtx)
+		from, stale, err := p.TransformFromStorage(ctx, out, dataCtx)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -715,7 +715,7 @@ func benchmarkCBCWrite(b *testing.B, keyLength int, valueLength int) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := p.TransformToStorage(ctx, "test", v, dataCtx)
+		_, err := p.TransformToStorage(ctx, v, dataCtx)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -764,13 +764,13 @@ func TestRoundTrip(t *testing.T) {
 				}
 				original := append([]byte{}, data...)
 
-				ciphertext, err := tt.t.TransformToStorage(ctx, "test", data, dataCtx)
+				ciphertext, err := tt.t.TransformToStorage(ctx, data, dataCtx)
 				if err != nil {
 					t.Errorf("TransformToStorage error = %v", err)
 					continue
 				}
 
-				result, stale, err := tt.t.TransformFromStorage(ctx, "test", ciphertext, dataCtx)
+				result, stale, err := tt.t.TransformFromStorage(ctx, ciphertext, dataCtx)
 				if err != nil {
 					t.Errorf("TransformFromStorage error = %v", err)
 					continue

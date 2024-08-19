@@ -127,11 +127,11 @@ func TestTotals(t *testing.T) {
 
 	for _, tt := range testCases {
 		t.Run(tt.desc, func(t *testing.T) {
-			_, err := tt.prefix.TransformToStorage(context.Background(), "test", []byte("value"), nil)
+			_, err := tt.prefix.TransformToStorage(context.Background(), []byte("value"), nil)
 			if err != nil && !tt.expectErr {
 				t.Fatal(err)
 			}
-			_, _, err = tt.prefix.TransformFromStorage(context.Background(), "test", []byte("k8s:enc:kms:v1:value"), nil)
+			_, _, err = tt.prefix.TransformFromStorage(context.Background(), []byte("k8s:enc:kms:v1:value"), nil)
 			if err != nil && !tt.expectErr {
 				t.Fatal(err)
 			}

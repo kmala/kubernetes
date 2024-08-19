@@ -43,14 +43,14 @@ func TestSecretboxKeyRotation(t *testing.T) {
 		value.PrefixTransformer{Prefix: []byte("first:"), Transformer: NewSecretboxTransformer(key1)},
 		value.PrefixTransformer{Prefix: []byte("second:"), Transformer: NewSecretboxTransformer(key2)},
 	)
-	out, err := p.TransformToStorage(ctx, "test", []byte("firstvalue"), dataCtx)
+	out, err := p.TransformToStorage(ctx, []byte("firstvalue"), dataCtx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !bytes.HasPrefix(out, []byte("first:")) {
 		t.Fatalf("unexpected prefix: %q", out)
 	}
-	from, stale, err := p.TransformFromStorage(ctx, "test", out, dataCtx)
+	from, stale, err := p.TransformFromStorage(ctx, out, dataCtx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +60,7 @@ func TestSecretboxKeyRotation(t *testing.T) {
 
 	// verify changing the context does not fails storage
 	// Secretbox is not currently an authenticating store
-	_, _, err = p.TransformFromStorage(ctx, "test", out, value.DefaultContext([]byte("incorrect_context")))
+	_, _, err = p.TransformFromStorage(ctx, out, value.DefaultContext([]byte("incorrect_context")))
 	if err != nil {
 		t.Fatalf("secretbox is not authenticated")
 	}
@@ -70,7 +70,7 @@ func TestSecretboxKeyRotation(t *testing.T) {
 		value.PrefixTransformer{Prefix: []byte("second:"), Transformer: NewSecretboxTransformer(key2)},
 		value.PrefixTransformer{Prefix: []byte("first:"), Transformer: NewSecretboxTransformer(key1)},
 	)
-	from, stale, err = p.TransformFromStorage(ctx, "test", out, dataCtx)
+	from, stale, err = p.TransformFromStorage(ctx, out, dataCtx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -123,7 +123,7 @@ func benchmarkSecretboxRead(b *testing.B, keyLength int, valueLength int, expect
 	dataCtx := value.DefaultContext([]byte("authenticated_data"))
 	v := bytes.Repeat([]byte("0123456789abcdef"), valueLength/16)
 
-	out, err := p.TransformToStorage(ctx, "test", v, dataCtx)
+	out, err := p.TransformToStorage(ctx, v, dataCtx)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -137,7 +137,7 @@ func benchmarkSecretboxRead(b *testing.B, keyLength int, valueLength int, expect
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		from, stale, err := p.TransformFromStorage(ctx, "test", out, dataCtx)
+		from, stale, err := p.TransformFromStorage(ctx, out, dataCtx)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -160,7 +160,7 @@ func benchmarkSecretboxWrite(b *testing.B, keyLength int, valueLength int) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := p.TransformToStorage(ctx, "test", v, dataCtx)
+		_, err := p.TransformToStorage(ctx, v, dataCtx)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -192,13 +192,13 @@ func TestRoundTrip(t *testing.T) {
 				}
 				original := append([]byte{}, data...)
 
-				ciphertext, err := tt.t.TransformToStorage(ctx, "test", data, dataCtx)
+				ciphertext, err := tt.t.TransformToStorage(ctx, data, dataCtx)
 				if err != nil {
 					t.Errorf("TransformToStorage error = %v", err)
 					continue
 				}
 
-				result, stale, err := tt.t.TransformFromStorage(ctx, "test", ciphertext, dataCtx)
+				result, stale, err := tt.t.TransformFromStorage(ctx, ciphertext, dataCtx)
 				if err != nil {
 					t.Errorf("TransformFromStorage error = %v", err)
 					continue
